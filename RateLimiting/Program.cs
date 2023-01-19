@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -74,21 +75,57 @@ builder.Services.AddSwaggerGen();
 #region Concurrency
 //Asenkron requestleri sýnýrlamak için kullanýlan bir algoritmiktir. her istek conccurrency sýnýrýný bir azaltmakta ve bittikleri taktirde bu sýnýrý bir arttýrmaktadýr. Diðer algoritmalara nazaran sadece asenkron requestleri sýnýrlandýrýrlar.
 
+//builder.Services.AddRateLimiter(opt =>
+//{
+//    opt.AddConcurrencyLimiter("Concurrency", options =>
+//    {
+//        options.PermitLimit = 4;
+//        options.QueueLimit = 2;
+//        options.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+//    });
+//});
+#endregion
+
+#endregion
+
+#region Aþaðýda özelleþtirdiðim rate limiti ekleme
 builder.Services.AddRateLimiter(opt =>
 {
-    opt.AddConcurrencyLimiter("Concurrency", options =>
-    {
-        options.PermitLimit = 4;
-        options.QueueLimit = 2;
-        options.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
-    });
+    opt.AddPolicy<string, CustomRateLimitPolicy>("customPolicy");
 });
 #endregion
 
-#endregion
 var app = builder.Build();
 
 app.UseRateLimiter(); // rate limit middleware
+
+
+#region OnRejected Property
+//OnRejected Property: Rate limit uygulanan operasyonlarda sýnýrdan dolayý boþa çýkan requestlerin söz konsuu olduðu durumlarda loglama vs gibi iþlemleri yapabilmek için kullandýðýmýz event mantýðýnda bir propertydir.
+//builder.Services.AddRateLimiter(opt =>
+//{
+//    opt.AddFixedWindowLimiter("Fixed", options =>
+//    {
+//        options.Window = TimeSpan.FromSeconds(10);
+//        options.PermitLimit = 4;
+//        options.QueueLimit = 4;
+//        options.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+//    });
+//    opt.OnRejected = (context, cancellationToken) =>
+//    {
+//        //12 saniyelik bir rate limitte 4 isteði iþledi 2'de kurukta vardý 6 oldu ve hala 12 saniye içindeyse 7. istek buraya düþer context ve cancellation token üzerinde  iþlem yapabiliriz
+//        //loglama 
+//        return new();
+//    };
+//});
+#endregion
+
+#region Minimal API Rate limit
+app.MapGet("/", () =>
+{
+
+}).RequireRateLimiting("Politika ismi");
+#endregion
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -104,3 +141,25 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+#region Özelleþtirilmiþ rate limit
+class CustomRateLimitPolicy : IRateLimiterPolicy<string> // bu interfaceden implement olmalý
+{
+    public Func<OnRejectedContext, CancellationToken, ValueTask>? OnRejected => (context, cancellationToken) =>
+    {
+        return new();
+    };
+
+    public RateLimitPartition<string> GetPartition(HttpContext httpContext)
+    {
+        return RateLimitPartition.GetFixedWindowLimiter("", _ => new()
+        {
+            PermitLimit = 4,
+            Window = TimeSpan.FromSeconds(5),
+            QueueLimit = 2,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+        });
+    }
+}
+#endregion
+
