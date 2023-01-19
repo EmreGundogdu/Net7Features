@@ -8,18 +8,84 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddRateLimiter(options =>
+
+#region Temel Rate Limit
+//builder.Services.AddRateLimiter(options =>
+//{
+//    options.AddFixedWindowLimiter("Basic", _options =>
+//    {
+//        _options.Window = TimeSpan.FromSeconds(12); //her 12 saniye de bir politika geçerli olucak
+//        _options.PermitLimit = 4; //12 saniyede 4 tane istek hakký var
+//        _options.QueueLimit = 2; //12 saniyede 4ten fazlaistek geldiðinde kaç tane isteði kuyruða alsýn
+//        _options.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst; //12 saniyede 4 istek hakkýnýn fazlasýnda gelenleri yani varsa kuyruða alanlarý 12 saniye bittikten sonra kuyrukta olanlarý iþlemeye baþlar
+
+//    });
+//});
+
+#endregion
+#region Rate Limiter Algoritmalarý Nelerdir
+#region Fixed Window
+//Sabit bir zaman aralýðý kullanýlarak istekleri snýnýrlar
+
+//builder.Services.AddRateLimiter(options =>
+//{
+//    options.AddFixedWindowLimiter("Fixed", _options =>
+//    {
+//        _options.Window = TimeSpan.FromSeconds(12); //sabit zaman aralýðý
+//        _options.PermitLimit = 4; //sabit istek sayýsý
+//        _options.QueueLimit = 2; //12 saniyede 4ten fazlaistek geldiðinde kaç tane isteði kuyruða alsýn
+//        _options.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst; //12 saniyede 4 istek hakkýnýn fazlasýnda gelenleri yani varsa kuyruða alanlarý 12 saniye bittikten sonra kuyrukta olanlarý iþlemeye baþlar
+
+//    });
+//});
+
+#endregion
+
+#region Sliding Window
+//Fixed window algroitmasýna benzerlik göstermektedir.(Her sabir sürede bir zaman aralýðýnda istekleri sýnýrlandýrmamaktadýr.Lakin sürenin yarýsýndan sonra diðer periyodun request kotasýný harcayarak þekilde istekleri karþýlar) 12 saniyelik bir zaman diliminde veya bellir bir zaman diliminde ve bu zamanýn yarýsýndan sonra sonraki periyottan requestleri iþlemeye baþlar
+//builder.Services.AddRateLimiter(opt =>
+//{
+//    opt.AddSlidingWindowLimiter("Sliding", options =>
+//    {
+//        options.Window = TimeSpan.FromSeconds(12);
+//        options.PermitLimit = 4;
+//        options.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+//        options.QueueLimit = 2;
+//        options.SegmentsPerWindow = 2; //12 saniyelik süreden sonra gelicek olan requestlerden 2 tane karþýlar ilk 12 saniyelik süre içerisinde
+//    });
+//});
+#endregion
+
+#region Token Bucket 
+//Her periyotta iþlenecek request sayýsý kadar token üretilmektedir. Eðer ki bu tokenlar kullanýldýysa diðer periyottan borç alýnabilir. Lakin her periyotta token üretim miktarý kadar token üretilecek ve bu þekilde rate limit uygulanacaktýr. Her periyodun maximum token limit verilen sabit sayý zaman dili kadar olacaktýr.
+//builder.Services.AddRateLimiter(opt =>
+//{
+//    opt.AddTokenBucketLimiter("Token", options =>
+//    {
+//        options.TokenLimit = 4; //token limit 4
+//        options.TokensPerPeriod = 4; // bu alan 4'ten byük bir sayý girsek bile token limit parametresine göre iþleyeceði için token limitten az veya eþit olmalý o yüzden 4 yazýldý
+//        options.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+//        options.QueueLimit = 2;
+//        options.ReplenishmentPeriod = TimeSpan.FromSeconds(12); //periyotlarýn zaman dilimleri 
+//    });
+//});
+#endregion
+
+#region Concurrency
+//Asenkron requestleri sýnýrlamak için kullanýlan bir algoritmiktir. her istek conccurrency sýnýrýný bir azaltmakta ve bittikleri taktirde bu sýnýrý bir arttýrmaktadýr. Diðer algoritmalara nazaran sadece asenkron requestleri sýnýrlandýrýrlar.
+
+builder.Services.AddRateLimiter(opt =>
 {
-    options.AddFixedWindowLimiter("Basic", _options =>
+    opt.AddConcurrencyLimiter("Concurrency", options =>
     {
-        _options.Window = TimeSpan.FromSeconds(12); //her 12 saniye de bir politika geçerli olucak
-        _options.PermitLimit = 4; //12 saniyede 4 tane istek hakký var
-        _options.QueueLimit = 2; //12 saniyede 4ten fazlaistek geldiðinde kaç tane isteði kuyruða alsýn
-        _options.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst; //12 saniyede 4 istek hakkýnýn fazlasýnda gelenleri yani varsa kuyruða alanlarý 12 saniye bittikten sonra kuyrukta olanlarý iþlemeye baþlar
-
-    }); 
+        options.PermitLimit = 4;
+        options.QueueLimit = 2;
+        options.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+    });
 });
+#endregion
 
+#endregion
 var app = builder.Build();
 
 app.UseRateLimiter(); // rate limit middleware
