@@ -20,7 +20,7 @@ app.UseOutputCache();
 
 #region Minimal API'den output caching
 
-app.MapGet("/", [OutputCache]() => //bu attribute'de kullanýlabilir
+app.MapGet("/", [OutputCache]() => //bu attribute'de kullanýlabilir | Daha fazla configure edilebilir
 {
     return Results.Ok(DateTime.UtcNow);
 }).CacheOutput(); //bu endpointe gelen istek neticesinde gelen veriyi 1 dakika cachler ve 1 dakika boyunca bu veriyi döndürür. 1 dakikadan sonra cacheden atýlýr | Default 1 dk'dýr
