@@ -6,7 +6,18 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddOutputCache();
+builder.Services.AddOutputCache(options =>
+{
+    options.AddBasePolicy(x => //Bu projede kullanýlan tüm output caching yapýlarýnda buradaki configurasyonlar geçerli olucak addbasepolicy dediðimiz için
+    {
+        x.Expire(TimeSpan.FromSeconds(5)); //tüm output cache olduðu yerlerde policy yazýlmaksýzýn default olarak eklenen örnek: [outputcaching] gibi yerlerde kullanýlanacak olan base confiurasyonlardýr
+
+    });
+    options.AddPolicy("CustomPolicy", x => //bizim kendimiz istenilen yerle göre özel configure edebileceðimiz configurationlar ekleyebiliriz
+    {
+        x.Expire(TimeSpan.FromSeconds(10));
+    });
+});
 
 var app = builder.Build();
 

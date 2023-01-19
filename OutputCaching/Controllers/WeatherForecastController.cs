@@ -14,5 +14,12 @@ namespace OutputCaching.Controllers
         {
             return Ok();
         }
+
+        [HttpGet("[action]")]
+        [OutputCache(PolicyName ="CustomPolicy")] // 10 saniye verdiðim cache süresinden sonra data dönmedi
+        public string dsadas()
+        {
+            return "Halllooo";
+        }
     }
 }
