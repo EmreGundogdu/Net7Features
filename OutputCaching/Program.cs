@@ -1,9 +1,8 @@
+using Microsoft.AspNetCore.OutputCaching;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -14,13 +13,21 @@ var app = builder.Build();
 app.UseOutputCache();
 
 
+
+
 //Geliþtirdiðimiz web mimarisinde çýktý olarak üretilen verinin sunucu tarafýnda verinin cachelenmesini saðlar
 
 
+#region Minimal API'den output caching
+
+app.MapGet("/", [OutputCache]() => //bu attribute'de kullanýlabilir
+{
+    return Results.Ok(DateTime.UtcNow);
+}).CacheOutput(); //bu endpointe gelen istek neticesinde gelen veriyi 1 dakika cachler ve 1 dakika boyunca bu veriyi döndürür. 1 dakikadan sonra cacheden atýlýr | Default 1 dk'dýr
+
+#endregion
 
 
-
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
